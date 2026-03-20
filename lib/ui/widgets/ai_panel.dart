@@ -1,4 +1,3 @@
-import 'package:dmv_admin/core/utils/utils.dart';
 import 'package:dmv_admin/ui/providers/practice_provider.dart';
 import 'package:dmv_admin/ui/providers/settings_provider.dart';
 import 'package:dmv_admin/ui/widgets/ai_response_card.dart';
@@ -6,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class AiPanel extends StatefulWidget {
-  const AiPanel({super.key});
+  final Function() onSave;
+  const AiPanel({super.key, required this.onSave});
 
   @override
   State<AiPanel> createState() => _AiPanelState();
@@ -413,6 +413,7 @@ class _AiPanelState extends State<AiPanel> {
                                     )
                                   : AiResponseCard(
                                       eightTranslations: response.responseAI!,
+                                      onSave: widget.onSave,
                                     );
                             },
                           ),

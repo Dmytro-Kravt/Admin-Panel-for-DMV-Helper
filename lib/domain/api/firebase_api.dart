@@ -137,4 +137,27 @@ class FirebaseApi {
       return UserModel.fromJson(snapshot.data()!);
     });
   }
+  
+  Future<({bool isDone, bool notExista})> addStateIdApi(String usState, int newId) async{
+    try{
+      final querySnapshot = await _firestore
+          .collection('State_IDS')
+          .where('name', isEqualTo: usState)
+          .limit(1)
+          .get();
+
+      if(querySnapshot.docs.isNotEmpty) {
+        final data = querySnapshot.docs.first;
+        await data.reference.update({'idList': FieldValue.arrayUnion([newId])});
+        return (isDone: true, notExista: false);
+      } else {
+        printer('Doc For State $usState', 'is not found');
+        return (isDone: false, notExista: true);
+      }
+    }catch(e, stackTrace) {
+      printer('Firebase API Error', e);
+      printer('Firebase API StackTrace', stackTrace);
+      return (isDone: false, notExista: false);
+    }
+  }
 }

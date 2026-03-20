@@ -6,12 +6,14 @@ class ManagerPanel extends StatefulWidget {
   final PracticeProvider pracProv;
   final Function() onTap;
   final bool isAiPanel;
+  final Function() onSubmit;
 
   const ManagerPanel({
     super.key,
     required this.pracProv,
     required this.onTap,
-    required this.isAiPanel
+    required this.isAiPanel,
+    required this.onSubmit
   });
 
   @override
@@ -307,8 +309,9 @@ class _ManagerPanelState extends State<ManagerPanel> {
                       child: ElevatedButton(
                         onPressed: widget.pracProv.role == .viewer
                             ? null
-                            : () {
-                                widget.pracProv.saveNewQuestion();
+                            : () async{
+                                await widget.pracProv.saveNewQuestion();
+                                widget.onSubmit();
                               },
 
                         child: Text('Submit'),

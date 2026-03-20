@@ -40,13 +40,17 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+
   }
 
   void _showEditPopup(
@@ -278,6 +282,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                   ResponseLog responseLog = ResponseLog(
                     logNumber: pracProv.response.length,
                     log: 'Ошибка: поле - $columKey должно иметь только числа',
+                    error: true
                   );
                   pracProv.response.add(responseLog);
                   pracProv.cellStatus[cellKey] = CellStatus.error;
@@ -305,6 +310,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
           },
           (newValue) {
             pracProv.replayAllCellInColumn(q, columKey, newValue, cellKey);
+            setState(() {
+              _scrollToBottom();
+            });
           },
           popupTitle,
         );
@@ -332,6 +340,9 @@ class _PracticeScreenState extends State<PracticeScreen> {
                       _isPanelOpen = !_isPanelOpen;
                     }),
                     isAiPanel: _isPanelOpen,
+                    onSubmit: () => setState(() {
+                        _scrollToBottom();
+                      }),
                   ),
                   SizedBox(height: 10),
                   Row(
@@ -371,12 +382,29 @@ class _PracticeScreenState extends State<PracticeScreen> {
                             itemCount: pracProv.response.length,
                             itemBuilder: (_, index) {
                               final log = pracProv.response[index];
-                              return Text(
-                                '${log.logNumber}: ${log.log} - Cell Key: ${log.cellKey}',
+                              return Align(
+                                alignment: .centerLeft,
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    minWidth: 450
+                                  ),
+                                  padding: const EdgeInsets.only(left: 5),
+                                  decoration: BoxDecoration(
+                                    color: log.error == true
+                                        ? Colors.red.withValues(alpha: 0.3)
+                                        : Colors.greenAccent.withValues(alpha: 0.3),
+                                    borderRadius: const BorderRadius.all(Radius.circular(8))
+                                  ),
+                                  child: SelectionArea(
+                                    child: Text(
+                                      '${log.logNumber}: ${log.log} ${log.cellKey != null ? ' - Cell Key: ${log.cellKey}' : ''}',
+                                    ),
+                                  ),
+                                ),
                               );
                             },
                             separatorBuilder: (_, _) {
-                              return Divider(color: Colors.grey);
+                              return SizedBox(height: 5,);
                             },
                           ),
                         ),
@@ -614,7 +642,11 @@ class _PracticeScreenState extends State<PracticeScreen> {
               ),
             ),
             if (_isPanelOpen)
-              AiPanel()
+              AiPanel(
+                onSave: () => setState(() {
+                  _scrollToBottom();
+                }),
+              )
           ],
         ),
         if (pracProv.isLoading)

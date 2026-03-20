@@ -1,4 +1,3 @@
-import 'package:dmv_admin/core/utils/utils.dart';
 import 'package:dmv_admin/domain/models/education_model.dart';
 import 'package:dmv_admin/ui/providers/practice_provider.dart';
 import 'package:flutter/material.dart';
@@ -6,10 +5,12 @@ import 'package:provider/provider.dart';
 
 class AiResponseCard extends StatefulWidget {
   final List<EducationModel> eightTranslations;
+  final Function() onSave;
 
   const AiResponseCard({
     super.key,
     required this.eightTranslations,
+    required this.onSave
   });
 
   @override
@@ -143,8 +144,13 @@ class _AiResponseCardState extends State<AiResponseCard> {
                       widget.eightTranslations,
                       pracProv.correctField!
                   );
+                  widget.onSave();
                 } else {
-                  printer('List', '< 8');
+                  pracProv.setLog(
+                      'Список меньше 8 или не выбрана буква на правельный ответ',
+                      true,
+                      null
+                  );
                   null;
                 }
               },

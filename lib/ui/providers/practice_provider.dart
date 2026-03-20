@@ -32,6 +32,7 @@ class PracticeProvider with ChangeNotifier {
     ResponseLog responseLog = ResponseLog(
       logNumber: response.length,
       log: value,
+      error: false
     );
     response.add(responseLog);
     notifyListeners();
@@ -57,6 +58,17 @@ class PracticeProvider with ChangeNotifier {
   void setCorrectField(String value) {
     if(correctField == value) return;
     correctField = value;
+    notifyListeners();
+  }
+
+  void setLog(String log, bool error, String? cellCey) {
+    ResponseLog responseLog = ResponseLog(
+      logNumber: response.length,
+      log: log,
+      error: error,
+      cellKey: cellCey
+    );
+    response.add(responseLog);
     notifyListeners();
   }
 
@@ -219,6 +231,7 @@ class PracticeProvider with ChangeNotifier {
                 logNumber: r.logNumber,
                 log: r.log,
                 cellKey: newCellKey,
+                  error: false
               );
             }
           } else {printer('Not found', '_State');}
@@ -246,6 +259,7 @@ class PracticeProvider with ChangeNotifier {
                 logNumber: r.logNumber,
                 log: r.log,
                 cellKey: newCellKey,
+                error: false
               );
             }
           }
@@ -262,9 +276,10 @@ class PracticeProvider with ChangeNotifier {
         ResponseLog(
           logNumber: response.length,
           log: 'Ошибка: вопрос не найден',
+          error: true
         ),
       );
-      return; // Прерываем функцию
+      return;
     }
 
 
@@ -282,6 +297,7 @@ class PracticeProvider with ChangeNotifier {
         logNumber: response.length,
         log: 'Поле $fieldName успешно создано',
         cellKey: chackedCellKey,
+        error: false
       );
       response.add(responseLog);
     } else {
@@ -289,6 +305,7 @@ class PracticeProvider with ChangeNotifier {
         logNumber: response.length,
         log: 'Ошибка поле $fieldName не создано',
         cellKey: chackedCellKey,
+        error: true
       );
       response.add(responseLog);
       cellStatus[chackedCellKey] = CellStatus.error;
@@ -324,6 +341,7 @@ class PracticeProvider with ChangeNotifier {
         ResponseLog responseLog = ResponseLog(
           logNumber: response.length,
           log: 'Поле $fieldName успешно обновленно',
+          error: false
         );
         response.add(responseLog);
         cellStatus[cellKey] = CellStatus.saved;
@@ -340,6 +358,7 @@ class PracticeProvider with ChangeNotifier {
         ResponseLog responseLog = ResponseLog(
           logNumber: response.length,
           log: 'Ошибка обновления $fieldName. E -> $e',
+          error: true
         );
         response.add(responseLog);
         cellStatus[cellKey] = CellStatus.error;
@@ -349,6 +368,7 @@ class PracticeProvider with ChangeNotifier {
       ResponseLog responseLog = ResponseLog(
         logNumber: response.length,
         log: 'Поле $fieldName не обновленно',
+          error: true
       );
       response.add(responseLog);
 
@@ -357,7 +377,16 @@ class PracticeProvider with ChangeNotifier {
   }
 
   Future<void> saveNewQuestion() async {
-    if (role == .viewer) return;
+    if (role == .viewer || allQuestion.length != 8) {
+      ResponseLog responseLog = ResponseLog(
+        logNumber: response.length,
+        log: 'Список вопросов не равет 8',
+        error: true,
+      );
+      response.add(responseLog);
+      notifyListeners();
+      return;
+    }
     final addToKey = [
       'Language',
       'Question_ID',
@@ -372,6 +401,7 @@ class PracticeProvider with ChangeNotifier {
       'Choose_Wrong',
       'Image',
     ];
+    bool added = false;
 
     for (EducationModel q in allQuestion) {
       final docID = '${q.language}_${q.questionId}_${q.usState}';
@@ -413,9 +443,17 @@ class PracticeProvider with ChangeNotifier {
           log: result
               ? 'Новый вопрос добавлен ID -> $docID'
               : 'Сбой отправки ID -> $docID',
+          error: result
+              ? false
+              : true
         );
-
         response.add(responseLog);
+
+        if(result && !added) {
+          added = true;
+        }
+
+
         notifyListeners();
       } else {
         for (var addition in addToKey) {
@@ -429,12 +467,58 @@ class PracticeProvider with ChangeNotifier {
         }
         ResponseLog responseLog = ResponseLog(
           logNumber: response.length,
-          log: 'Вопрос не полностью заполнен ID -> $docID ',
+          log: 'Вопрос не полностью заполнен ID -> $docID',
+          error: true
         );
         response.add(responseLog);
+
+        if(added) added = false;
+        ResponseLog responseLog2 = ResponseLog(
+          logNumber: response.length,
+          log: 'ОШИБКА!!! ID (${allQuestion.first
+              .questionId}) не был добавлен в ${allQuestion.first.usState}!!!',
+          error: true,
+        );
+        response.add(responseLog2);
         notifyListeners();
       }
     }
+    if(added){
+      final isAddId =
+      await _api.addStateIdApi(
+          allQuestion.first.usState,
+          allQuestion.first.questionId
+      );
+
+      if (isAddId.isDone && !isAddId.notExista) {
+        ResponseLog responseLog = ResponseLog(
+          logNumber: response.length,
+          log: 'Новый ID (${allQuestion.first
+              .questionId}) добавлен в ${allQuestion.first.usState}',
+          error: false,
+        );
+        response.add(responseLog);
+      }
+      else if (!isAddId.isDone && isAddId.notExista) {
+        ResponseLog responseLog = ResponseLog(
+          logNumber: response.length,
+          log: 'ОШИБКА!!! ID (${allQuestion.first
+              .questionId}) не был добавлен в ${allQuestion.first.usState}!!!',
+          error: true,
+        );
+        response.add(responseLog);
+      }
+      else {
+        ResponseLog responseLog = ResponseLog(
+          logNumber: response.length,
+          log: 'Catch Error: ID (${allQuestion.first
+              .questionId}) не был добавлен в ${allQuestion.first.usState}!!!',
+          error: true,
+        );
+        response.add(responseLog);
+      }
+    }
+    notifyListeners();
   }
 
   void _sortQuestionList(List<EducationModel> que) {
@@ -486,7 +570,8 @@ class PracticeProvider with ChangeNotifier {
       }catch(e) {
         ResponseLog responseLog = ResponseLog(
             logNumber: response.length,
-            log: 'Ошибка: поле - $fieldName должно иметь только числа'
+            log: 'Ошибка: поле - $fieldName должно иметь только числа',
+            error: true,
         );
         response.add(responseLog);
         cellStatus[cellKey] = CellStatus.error;
@@ -565,6 +650,7 @@ class PracticeProvider with ChangeNotifier {
       ResponseLog responseLog = ResponseLog(
         logNumber: response.length,
         log: 'Questions List is Empty',
+        error: true
       );
       response.add(responseLog);
       return;
@@ -584,12 +670,16 @@ class PracticeProvider with ChangeNotifier {
         log: result
             ? 'File has been saved'
             : 'Ошибка сохранения, не создан путь',
+        error: result
+            ? false
+            : true,
       );
       response.add(responseLog);
     }catch(e) {
       ResponseLog responseLog = ResponseLog(
         logNumber: response.length,
         log: 'Error: - $e',
+        error: true
       );
       response.add(responseLog);
     }
